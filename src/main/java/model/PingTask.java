@@ -6,15 +6,16 @@ import java.security.SecureRandom;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,26 +36,29 @@ public class PingTask {
     public void ping() {
         LOGGER.info("Starting HTTP call...");
         LOGGER.info("=====================");
-        LOGGER.info("URI: {}", config.uri());
+        LOGGER.info("Config: {}", config);
         
         try {
             
             HttpResponse httpResponse = this.httpClient()
                                             .execute(
-                                                    host(),
-                                                    httpGet()
+                                                host(),
+                                                httpGet()
                                             );
+            
+            HttpEntity entity = httpResponse.getEntity();
             
             LOGGER.info("");
             LOGGER.info("RESULT:");
             LOGGER.info("=======");
             LOGGER.info("");
             LOGGER.info("Http STATUS response: {} ", httpResponse.getStatusLine().getStatusCode());
-            LOGGER.info("Body: {}", httpResponse.getEntity());
+            LOGGER.info("Body: {}", EntityUtils.toString(entity));
 
+            EntityUtils.consumeQuietly(entity);
         } catch (Exception e) {
             LOGGER.error("Error on request.", e);
-        }
+        } 
     }
 
     private final HttpHost host() {
@@ -75,10 +79,11 @@ public class PingTask {
                                 .setDefaultRequestConfig(
                                         requestConfig()
                                 )
-                                .setRedirectStrategy(new LaxRedirectStrategy()) // or .disableRedirectHandling()
-                                .setSSLSocketFactory(
-                                        new SSLSocketFactory(sslContext())
-                                )
+                                .setRedirectStrategy(new LaxRedirectStrategy())
+                                //                                .setSSLSocketFactory(
+                                //                                        new SSLSocketFactory(sslContext())
+                                //                                )
+                                .setSSLContext(sslContext())
                                 .build();
     }
 
